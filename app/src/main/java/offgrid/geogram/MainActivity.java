@@ -26,14 +26,15 @@ import androidx.fragment.app.FragmentTransaction;
 
 import com.google.android.material.navigation.NavigationView;
 
+import offgrid.geogram.ble.events.BroadcastChatFragment;
 import offgrid.geogram.core.Art;
 import offgrid.geogram.core.BackgroundService;
+import offgrid.geogram.core.Central;
 import offgrid.geogram.core.Log;
 import offgrid.geogram.core.PermissionsHelper;
 import offgrid.geogram.fragments.AboutFragment;
 import offgrid.geogram.fragments.DebugFragment;
 import offgrid.geogram.fragments.NetworksFragment;
-import offgrid.geogram.old.bluetooth_old.broadcast.BroadcastChatFragment;
 import offgrid.geogram.settings.SettingsFragment;
 import offgrid.geogram.util.BatteryOptimizationHelper;
 
@@ -150,7 +151,7 @@ public class MainActivity extends AppCompatActivity {
             if (item.getItemId() == R.id.nav_settings) {
                 transaction.replace(R.id.main, SettingsFragment.getInstance()).addToBackStack(null);
             } else if (item.getItemId() == R.id.nav_broadcast) {
-                transaction.replace(R.id.main, new BroadcastChatFragment()).addToBackStack(null);
+                transaction.replace(R.id.main, Central.getInstance().broadcastChatFragment).addToBackStack(null);
             } else if (item.getItemId() == R.id.nav_debug) {
                 transaction.replace(R.id.main, new DebugFragment()).addToBackStack(null);
             } else if (item.getItemId() == R.id.nav_about) {

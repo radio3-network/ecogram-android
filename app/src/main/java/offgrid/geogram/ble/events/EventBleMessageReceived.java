@@ -15,5 +15,7 @@ public class EventBleMessageReceived extends EventAction {
         String message = (String) data[0];
         Log.i(TAG, "-->> Received message: " + message);
         // Handle the received message here
+
+        // add the message on the broadcast window
     }
 }

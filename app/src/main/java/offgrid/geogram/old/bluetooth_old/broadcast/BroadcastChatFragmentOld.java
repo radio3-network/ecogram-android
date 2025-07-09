@@ -26,7 +26,6 @@ import offgrid.geogram.MainActivity;
 import offgrid.geogram.R;
 import offgrid.geogram.ble.BluetoothSender;
 import offgrid.geogram.old.bluetooth_old.BlueQueueReceiving;
-import offgrid.geogram.core.Central;
 import offgrid.geogram.core.Log;
 import offgrid.geogram.database.BioDatabase;
 import offgrid.geogram.database.BioProfile;
@@ -34,7 +33,7 @@ import offgrid.geogram.devices.DeviceDetailsFragment;
 import offgrid.geogram.util.ASCII;
 import offgrid.geogram.util.DateUtils;
 
-public class BroadcastChatFragment extends Fragment implements BroadcastSender.MessageUpdateListener {
+public class BroadcastChatFragmentOld extends Fragment implements BroadcastSender.MessageUpdateListener {
 
     // messages that are displayed
     private final ArrayList<BroadcastMessage> displayedMessages = new ArrayList<>();
@@ -47,7 +46,7 @@ public class BroadcastChatFragment extends Fragment implements BroadcastSender.M
     public static String TAG = "BroadcastChatFragment";
 
 
-    public BroadcastChatFragment() {
+    public BroadcastChatFragmentOld() {
         // Required empty public constructor
     }
 
@@ -193,7 +192,7 @@ public class BroadcastChatFragment extends Fragment implements BroadcastSender.M
      *
      * @param message The message to display.
      */
-    private void addUserMessage(BroadcastMessage message) {
+    public void addUserMessage(BroadcastMessage message) {
         View userMessageView = LayoutInflater.from(getContext())
                 .inflate(R.layout.item_user_message, chatMessageContainer, false);
         TextView messageTextView = userMessageView.findViewById(R.id.message_user_self);
@@ -217,7 +216,7 @@ public class BroadcastChatFragment extends Fragment implements BroadcastSender.M
      *
      * @param message The message to display.
      */
-    private void addReceivedMessage(BroadcastMessage message) {
+    public void addReceivedMessage(BroadcastMessage message) {
         View receivedMessageView = LayoutInflater.from(getContext())
                 .inflate(R.layout.item_received_message, chatMessageContainer, false);
 

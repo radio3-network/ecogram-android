@@ -9,6 +9,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
+import offgrid.geogram.ble.events.BroadcastChatFragment;
 import offgrid.geogram.old.old.WiFi_control;
 import offgrid.geogram.server.SimpleSparkServer;
 import offgrid.geogram.settings.SettingsLoader;
@@ -24,6 +25,7 @@ public class Central {
     public static boolean debugForLocalTests = false;
 
 
+    public BroadcastChatFragment broadcastChatFragment = new BroadcastChatFragment();
 
     /*
      * Old settings, need to be incrementally removed

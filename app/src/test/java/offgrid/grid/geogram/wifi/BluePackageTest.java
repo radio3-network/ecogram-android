@@ -5,8 +5,6 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 
 import offgrid.geogram.ble.BluetoothMessage;
-import offgrid.geogram.old.bluetooth_old.other.comms.BluePackage;
-import offgrid.geogram.old.bluetooth_old.other.comms.DataType;
 
 public class BluePackageTest {
 
@@ -15,10 +13,41 @@ public class BluePackageTest {
 
         String messageToSend = "Hello there, this is a long message just to test that we can send them";
 
-        BluetoothMessage msg = new BluetoothMessage("CR7BBQ-5", messageToSend);
+        BluetoothMessage msg = new BluetoothMessage("CR7BBQ-15", "KO6ZJI-10", messageToSend);
         assertEquals(5, msg.getMessageParcelsTotal());
 
+        // e.g. WO0:CR7BBQ-15:KO6ZJI-10:GMJA | WO1:Hello there, this  | WO2:is a long message  | WO3:just to test that  | WO4:we can send them
         String output = msg.getOutput();
+
+
+        // test the reconstruction of messages
+        BluetoothMessage msg2 = new BluetoothMessage();
+        msg2.addMessageParcel(msg.getMessageParcels()[1]);
+
+        // get the missing results
+        String missingParcel = msg2.getFirstMissingParcel();
+        String expectedId = msg.getId() + "0";
+        assertEquals(expectedId, missingParcel);
+        msg2.addMessageParcel(msg.getMessageParcels()[0]);
+
+        assertFalse(msg2.isMessageCompleted());
+
+        // get the missing results
+        missingParcel = msg2.getFirstMissingParcel();
+        expectedId = msg.getId() + "2";
+        assertEquals(expectedId, missingParcel);
+
+        msg2.addMessageParcel(msg.getMessageParcels()[2]);
+        msg2.addMessageParcel(msg.getMessageParcels()[4]);
+
+        // get the missing results
+        missingParcel = msg2.getFirstMissingParcel();
+        expectedId = msg.getId() + "3";
+        assertEquals(expectedId, missingParcel);
+
+        msg2.addMessageParcel(msg.getMessageParcels()[3]);
+
+        assertTrue(msg2.isMessageCompleted());
 
         System.gc();
 

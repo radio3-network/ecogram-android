@@ -23,6 +23,8 @@ import java.util.Queue;
 import java.util.UUID;
 
 import offgrid.geogram.core.Log;
+import offgrid.geogram.events.EventControl;
+import offgrid.geogram.events.EventType;
 
 @SuppressLint("ObsoleteSdkInt")
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
@@ -113,24 +115,18 @@ public class BluetoothSender {
 
     public void sendMessage(String message) {
         if (message == null || message.isEmpty()) return;
-
-        // do we need to break up the message?
-        if (message.length() > maxSizeOfMessages) {
-            BluetoothMessage msg = new BluetoothMessage("EVERYONE", message);
-            Log.i(TAG, "Queued large message: " + msg.getOutput());
-            for(String parcel : msg.getMessageBox().values()){
-                if(parcel.startsWith(">") == false){
-                    parcel = ">" + parcel;
-                }
-                messageQueue.offer(parcel);
+        BluetoothMessage msg = new BluetoothMessage("CR7BBQ-5", "ANY", message);
+        sendMessage(msg);
+    }
+    public void sendMessage(BluetoothMessage msg) {
+        // initiate the event for anyone listening
+        EventControl.startEvent(EventType.BLE_BROADCAST_SENT, msg);
+        Log.i(TAG, "Queued message: " + msg.getOutput());
+        for(String parcel : msg.getMessageBox().values()){
+            if(parcel.startsWith(">") == false){
+                parcel = ">" + parcel;
             }
-
-        }else{
-            if(message.startsWith(">") == false){
-                message = ">" + message;
-            }
-            messageQueue.offer(message);
-            Log.i(TAG, "Queued message: " + message);
+            messageQueue.offer(parcel);
         }
 
         if (isRunning && !isPaused) {
@@ -140,9 +136,6 @@ public class BluetoothSender {
         if (isRunning && !isPaused) {
             tryToSendNext();
         }
-
-
-
     }
 
     private void tryToSendNext() {

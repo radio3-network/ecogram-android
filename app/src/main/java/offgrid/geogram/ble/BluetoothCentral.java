@@ -2,6 +2,8 @@ package offgrid.geogram.ble;
 
 import android.content.Context;
 
+import offgrid.geogram.ble.events.EventBleBroadcastMessageReceived;
+import offgrid.geogram.ble.events.EventBleBroadcastMessageSent;
 import offgrid.geogram.ble.events.EventBleMessageReceived;
 import offgrid.geogram.core.Log;
 import offgrid.geogram.events.EventControl;
@@ -66,6 +68,15 @@ public class BluetoothCentral {
         EventControl.addEvent(EventType.BLUETOOTH_MESSAGE_RECEIVED,
                 new EventBleMessageReceived(TAG + "-packageReceived")
         );
+
+        EventControl.addEvent(EventType.BLE_BROADCAST_RECEIVED,
+                new EventBleBroadcastMessageReceived(TAG + "-BleBroadcastMessageReceived")
+        );
+
+        EventControl.addEvent(EventType.BLE_BROADCAST_SENT,
+                new EventBleBroadcastMessageSent(TAG + "-BleBroadcastMessageSent")
+        );
+
 //        EventControl.addEvent(EventType.BLUETOOTH_ACKNOWLEDGE_RECEIVED,
 //                new EventBluetoothAcknowledgementReceived(TAG + "+ ackReceived", context)
 //        );

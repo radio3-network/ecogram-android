@@ -13,31 +13,34 @@ package offgrid.geogram.ble;
 
 import static offgrid.geogram.ble.BluetoothCentral.maxSizeOfMessages;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Random;
 import java.util.TreeMap;
+
+import offgrid.geogram.core.Log;
 
 public class BluetoothMessage {
 
     private static final int TEXT_LENGTH_PER_PARCEL = maxSizeOfMessages;
-    private final int messageParcelsTotal;
-    private String[] messageParcels;
-    private final String checksum;
+    private boolean messageCompleted = false;
     private static final String TAG = "BluetoothMessage";
-    private final String
-            id,
-    idFromSender;
-    private String message = null;
+    private String
+            id = null, // unique ID
+            idFromSender = null, // who sent this message
+            idDestination,
+            message = null,
+            checksum = null;
     private final TreeMap<String, String> messageBox = new TreeMap<>();
 
-    public BluetoothMessage(String idFromSender, String messageToSend) {
+    public BluetoothMessage(String idFromSender, String idDestination, String messageToSend) {
         this.id = generateRandomId();
         this.idFromSender = idFromSender;
+        this.idDestination = idDestination;
         this.message = messageToSend;
-        this.messageParcelsTotal = (int) Math.ceil((double) message.length() / TEXT_LENGTH_PER_PARCEL);
         this.checksum = calculateChecksum(message);
         splitDataIntoParcels();
+    }
+
+    public BluetoothMessage() {
     }
 
     /**
@@ -71,7 +74,7 @@ public class BluetoothMessage {
      */
     private void splitDataIntoParcels() {
         int dataLength = message.length();
-        messageParcels = new String[messageParcelsTotal];
+        int messageParcelsTotal = (int) Math.ceil((double) message.length() / TEXT_LENGTH_PER_PARCEL);
 
         // add the header
         String uidHeader = id + "0";
@@ -80,7 +83,7 @@ public class BluetoothMessage {
                 + ":"
                 + idFromSender
                 + ":"
-                + messageParcelsTotal
+                + idDestination
                 + ":"
                 + checksum
                 ;
@@ -90,7 +93,6 @@ public class BluetoothMessage {
             int start = i * TEXT_LENGTH_PER_PARCEL;
             int end = Math.min(start + TEXT_LENGTH_PER_PARCEL, dataLength);
             String text = message.substring(start, end);
-            messageParcels[i] = text;
             int value = i + 1;
             String uid = id + value;
             messageBox.put(uid,
@@ -117,7 +119,8 @@ public class BluetoothMessage {
     }
 
     public String[] getMessageParcels() {
-        return messageParcels;
+        //return messageParcels;
+        return getMessageBox().values().toArray(new String[0]);
     }
 
     public String getChecksum() {
@@ -126,6 +129,10 @@ public class BluetoothMessage {
 
     public String getId() {
         return id;
+    }
+
+    public String getIdDestination() {
+        return idDestination;
     }
 
     public String getIdFromSender() {
@@ -150,4 +157,119 @@ public class BluetoothMessage {
         }
         return output.substring(0, output.length() - 3);
     }
+
+    public String getAuthor() {
+        return idFromSender;
+    }
+
+    public void addMessageParcel(String messageParcel) {
+        // needs to be a parcel
+        if(messageParcel.contains(":") == false){
+            return;
+        }
+        // separate the header from the data
+        String[] parcel = messageParcel.split(":");
+        String parcelId = parcel[0];
+        // is it already repeated?
+        if(messageBox.containsKey(parcelId)){
+            return;
+        }
+        // add this parcel on our collection
+        messageBox.put(parcelId, messageParcel);
+
+        // get the index value
+        int index = -1;
+        try{
+            String value = parcelId.substring(2);
+            index = Integer.parseInt(value);
+            // update the id when this hasn't been done before
+            if(id == null){
+                this.id = parcelId.substring(0,2);
+            }
+        } catch (NumberFormatException e) {
+            Log.i(TAG, "Invalid parcel ID: " + parcelId);
+            return;
+        }
+
+        if(index < 0){
+            Log.i(TAG, "Invalid parcel ID: " + parcelId);
+            return;
+        }
+
+        // check if we have all the parcels
+        if(messageBox.size() == 1){
+            // too empty, we need at least two of them
+            return;
+        }
+
+        // when the index is 0, it is an header so process it accordingly;
+        if(index == 0){
+            this.idFromSender = parcel[1];
+            this.idDestination = parcel[2];
+            this.id = parcelId.substring(0,2);
+            this.checksum = parcel[3];
+            return;
+        }
+
+        // are we ready to compute the checksum?
+        if(checksum == null){
+            // not yet
+            return;
+        }
+
+        String result = "";
+
+        String[] lines = this.getMessageParcels();
+
+        for(int i = 1; i < lines.length; i++){
+            String line = lines[i];
+            int anchor = line.indexOf(":");
+            String text = line.substring(anchor + 1);
+            result += text;
+        }
+
+
+
+        // compute the checksum
+        String currentChecksum = calculateChecksum(result);
+        // needs to match
+        if(currentChecksum.equals(this.checksum) == false){
+            return;
+        }
+        // this message is concluded
+        this.message = result;
+        this.messageCompleted = true;
+    }
+
+    public boolean isMessageCompleted() {
+        return messageCompleted;
+    }
+
+    /**
+     * Returns the first parcel that is noted as missing
+     * @return the id and index of the missing parcel
+     */
+    public String getFirstMissingParcel() {
+        // easiest situation: we missed the header
+        if(checksum == null){
+            return id + "0";
+        }
+
+        // second easy case, there isn't a followup messsage
+        if(messageBox.size() == 1){
+            return id + "1";
+        }
+
+        // it is a long message, so let's try to see which ones are missing
+        for(int i = 0; i < messageBox.size(); i++){
+            String key = id + i;
+            if(messageBox.containsKey(key) == false){
+                return key;
+            }
+        }
+
+        // not the case, so we ask for a future value
+        return id + messageBox.size();
+    }
+
 }
