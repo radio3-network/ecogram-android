@@ -11,6 +11,8 @@
 package offgrid.geogram.ble;
 
 
+import static offgrid.geogram.ble.BluetoothCentral.maxSizeOfMessages;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
@@ -18,7 +20,7 @@ import java.util.TreeMap;
 
 public class BluetoothMessage {
 
-    private static final int TEXT_LENGTH_PER_PARCEL = 20;
+    private static final int TEXT_LENGTH_PER_PARCEL = maxSizeOfMessages;
     private final int messageParcelsTotal;
     private String[] messageParcels;
     private final String checksum;
@@ -136,5 +138,16 @@ public class BluetoothMessage {
 
     public TreeMap<String, String> getMessageBox() {
         return messageBox;
+    }
+
+    public String getOutput() {
+        String output = "";
+        if(messageBox.isEmpty()){
+            return "";
+        }
+        for (String key : messageBox.keySet()) {
+            output += messageBox.get(key) + " | ";
+        }
+        return output.substring(0, output.length() - 3);
     }
 }

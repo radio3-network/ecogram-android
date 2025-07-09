@@ -140,9 +140,12 @@ public class DeviceChatFragment extends Fragment {
 //            // save the message to disk
 //            ChatDatabaseWithDevice.getInstance(this.getContext()).saveToDisk(deviceId, deviceMessages);
 
-
+        //BluetoothSender.getInstance(this.getContext()).setSelfMessage(text);
+        //BluetoothSender.getInstance(this.getContext()).sendMessage(text);
         requireActivity().runOnUiThread(() -> {
-            BluetoothSender.getInstance(this.getContext()).sendMessage(message);
+            //BluetoothSender.getInstance(null).start();
+            //BluetoothSender.getInstance(this.getContext()).setSelfMessage(message);
+            //BluetoothSender.getInstance(this.getContext()).sendMessage(message);
         });
 
 //        new Thread(() -> {

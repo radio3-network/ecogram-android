@@ -21,7 +21,7 @@ import offgrid.geogram.events.EventType;
 
 public class BluetoothListener {
 
-    private static final String TAG = "--📡--";
+    private static final String TAG = "📡";
     private static BluetoothListener instance;
 
     private final Context context;

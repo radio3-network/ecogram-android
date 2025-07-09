@@ -31,7 +31,7 @@ public class BluetoothCentral {
     public static final int advertiseDurationMillis = 400;
     public static int
             selfIntervalSeconds = 60,
-            maxSizeOfMessages = 15;
+            maxSizeOfMessages = 18;
 
     private static final String TAG = "BluetoothCentral";
 
@@ -54,6 +54,7 @@ public class BluetoothCentral {
         BluetoothSender sender = BluetoothSender.getInstance(context);
         //sender.setSelfMessage("NODE1>ALL:>Beacon Active");
         sender.setSelfIntervalSeconds(10); // every 10 seconds
+        //sender.setSelfMessage("Testing out");
         sender.start();
 
         BluetoothListener.getInstance(context).startListening();

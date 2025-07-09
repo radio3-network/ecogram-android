@@ -1,6 +1,7 @@
 package offgrid.geogram.ble;
 
 import static offgrid.geogram.ble.BluetoothCentral.advertiseDurationMillis;
+import static offgrid.geogram.ble.BluetoothCentral.maxSizeOfMessages;
 import static offgrid.geogram.ble.BluetoothCentral.selfIntervalSeconds;
 
 import android.annotation.SuppressLint;
@@ -28,7 +29,7 @@ import offgrid.geogram.core.Log;
 public class BluetoothSender {
 
     // Self-advertising
-    private String selfMessage = ">CR7BBQ " + System.currentTimeMillis();
+    private String selfMessage = null; //">CR7BBQ " + System.currentTimeMillis();
     private static final String TAG = "BluetoothSender";
     private static final UUID SERVICE_UUID = UUID.fromString("0000FEAA-0000-1000-8000-00805F9B34FB");
     private static BluetoothSender instance;
@@ -46,7 +47,7 @@ public class BluetoothSender {
         @Override
         public void run() {
             if (isRunning && !isPaused && selfMessage != null) {
-                selfMessage = ">CR7BBQ " + System.currentTimeMillis();
+                //selfMessage = ">KO6JZI " + System.currentTimeMillis();
                 sendMessage(selfMessage);
                 handler.postDelayed(this, selfIntervalSeconds * 1000L);
             }
@@ -113,19 +114,43 @@ public class BluetoothSender {
     public void sendMessage(String message) {
         if (message == null || message.isEmpty()) return;
 
-        messageQueue.offer(message);
-        Log.i(TAG, "Queued message: " + message);
+        // do we need to break up the message?
+        if (message.length() > maxSizeOfMessages) {
+            BluetoothMessage msg = new BluetoothMessage("EVERYONE", message);
+            Log.i(TAG, "Queued large message: " + msg.getOutput());
+            for(String parcel : msg.getMessageBox().values()){
+                if(parcel.startsWith(">") == false){
+                    parcel = ">" + parcel;
+                }
+                messageQueue.offer(parcel);
+            }
+
+        }else{
+            if(message.startsWith(">") == false){
+                message = ">" + message;
+            }
+            messageQueue.offer(message);
+            Log.i(TAG, "Queued message: " + message);
+        }
 
         if (isRunning && !isPaused) {
             tryToSendNext();
         }
+        // need to repeat for sending the last parcel
+        if (isRunning && !isPaused) {
+            tryToSendNext();
+        }
+
+
+
     }
 
     private void tryToSendNext() {
-        if (!isRunning || isPaused || isSending || messageQueue.isEmpty()) return;
+        if (!isRunning || isPaused || isSending || messageQueue.isEmpty()) {
+            return;
+        }
 
-        String message = messageQueue.peek();
-        //String message = messageQueue.poll();
+        final String message = messageQueue.peek();
         if (message == null) return;
 
         if (!hasAdvertisePermission()) {
@@ -140,47 +165,62 @@ public class BluetoothSender {
                 .setConnectable(false)
                 .build();
 
-        advertiseCallback = new AdvertiseCallback() {
+        isSending = true;
+
+        AdvertiseCallback callback = new AdvertiseCallback() {
             @Override
             public void onStartSuccess(AdvertiseSettings settingsInEffect) {
+                Log.i(TAG, "Started advertising message: " + message);
 
                 handler.postDelayed(() -> {
-                    Log.i(TAG, "Advertising message: " + message);
-                    isSending = true;
-                    // don't listen while sending data
-                    BluetoothListener.getInstance(context).pauseListening();
-                    stopAdvertising();
-                    // take the next message out of the poll
-                    String removed = messageQueue.poll();
+                    stopAdvertising(); // Stop current ad
+                    String removed = messageQueue.poll(); // Remove message from queue
                     Log.i(TAG, "Message sent and removed from queue: " + removed);
                     isSending = false;
-                    tryToSendNext();
-                    // unblock the sending
                     BluetoothListener.getInstance(context).resumeListening();
+                    tryToSendNext(); // Try next message
                 }, advertiseDurationMillis);
             }
 
             @Override
             public void onStartFailure(int errorCode) {
                 Log.i(TAG, "Failed to advertise message. Error code: " + errorCode);
+                stopAdvertising(); // Attempt to clean up
                 isSending = false;
+                tryToSendNext(); // Try next message
             }
         };
 
+        advertiseCallback = callback; // Keep reference to stop it later
+        BluetoothListener.getInstance(context).pauseListening();
+
         try {
-            advertiser.startAdvertising(settings, data, advertiseCallback);
+            advertiser.startAdvertising(settings, data, callback);
+
+            // Failsafe: reset isSending in case no callback is triggered
+            handler.postDelayed(() -> {
+                if (isSending) {
+                    Log.i(TAG, "Failsafe triggered: No BLE callback within expected time.");
+                    stopAdvertising();
+                    isSending = false;
+                    tryToSendNext();
+                }
+            }, advertiseDurationMillis + 1000);
+
         } catch (SecurityException e) {
             Log.i(TAG, "SecurityException while advertising: " + e.getMessage());
+            isSending = false;
         }
     }
 
 
+
     public void setSelfMessage(String message) {
         this.selfMessage = message;
-        Log.i(TAG, "Self message set to: " + message);
         if (isRunning && !isPaused) {
             handler.removeCallbacks(selfAdvertiseTask);
             handler.post(selfAdvertiseTask);
+            Log.i(TAG, "Self message set to: " + message);
         }
     }
 
@@ -213,13 +253,19 @@ public class BluetoothSender {
     }
 
     private AdvertiseData buildAdvertiseData(String message) {
-        byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
-        if (bytes.length > 24) {
-            Log.i(TAG, "Message too long, truncating to 24 bytes.");
-            byte[] truncated = new byte[24];
-            System.arraycopy(bytes, 0, truncated, 0, 24);
-            bytes = truncated;
+
+        if(message.length() >= 24){
+            message = message.substring(0, 23);
         }
+
+
+        byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
+//        if (bytes.length > 24) {
+//            Log.i(TAG, "Message too long, truncating to 24 bytes.");
+//            byte[] truncated = new byte[24];
+//            System.arraycopy(bytes, 0, truncated, 0, 24);
+//            bytes = truncated;
+//        }
 
         return new AdvertiseData.Builder()
                 .addServiceUuid(new ParcelUuid(SERVICE_UUID))

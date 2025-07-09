@@ -18,6 +18,7 @@ public class BluePackageTest {
         BluetoothMessage msg = new BluetoothMessage("CR7BBQ-5", messageToSend);
         assertEquals(5, msg.getMessageParcelsTotal());
 
+        String output = msg.getOutput();
 
         System.gc();
 
