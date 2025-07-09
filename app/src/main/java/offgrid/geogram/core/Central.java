@@ -9,7 +9,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
-import offgrid.geogram.core.old.WiFi_control;
+import offgrid.geogram.old.old.WiFi_control;
 import offgrid.geogram.server.SimpleSparkServer;
 import offgrid.geogram.settings.SettingsLoader;
 import offgrid.geogram.settings.SettingsUser;

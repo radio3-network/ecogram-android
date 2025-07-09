@@ -5,10 +5,9 @@ import android.content.Context;
 import java.io.File;
 import java.util.HashMap;
 
-import offgrid.geogram.bluetooth.broadcast.BroadcastSender;
 import offgrid.geogram.core.Log;
 import offgrid.geogram.util.JsonUtils;
-import offgrid.geogram.wifi.messages.MessageHello_v1;
+import offgrid.geogram.old.wifi.messages.MessageHello_v1;
 
 /**
  * Handles all data related to hellos that were sent

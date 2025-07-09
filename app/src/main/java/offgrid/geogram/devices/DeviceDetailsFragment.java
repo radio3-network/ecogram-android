@@ -14,7 +14,7 @@ import androidx.fragment.app.Fragment;
 
 import offgrid.geogram.MainActivity;
 import offgrid.geogram.R;
-import offgrid.geogram.bluetooth.eddystone.DeviceFinder;
+import offgrid.geogram.old.bluetooth_old.eddystone.DeviceFinder;
 import offgrid.geogram.core.Log;
 import offgrid.geogram.database.BioDatabase;
 import offgrid.geogram.database.BioProfile;
