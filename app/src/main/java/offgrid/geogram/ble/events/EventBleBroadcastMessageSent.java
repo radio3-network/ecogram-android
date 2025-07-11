@@ -1,6 +1,7 @@
 package offgrid.geogram.ble.events;
 
 import offgrid.geogram.ble.BluetoothMessage;
+import offgrid.geogram.ble.chat.ChatMessage;
 import offgrid.geogram.core.Central;
 import offgrid.geogram.core.Log;
 import offgrid.geogram.events.EventAction;
@@ -16,13 +17,9 @@ public class EventBleBroadcastMessageSent extends EventAction {
     @Override
     public void action(Object... data) {
         BluetoothMessage message = (BluetoothMessage) data[0];
-        //Log.i(TAG, "-->> Sent message: " + message.getOutput());
-        BroadcastMessage broadCastMessage = new BroadcastMessage(
-                message.getMessage(),
-                "Me",
-                true
-                );
+        ChatMessage chatMessage = ChatMessage.convert(message);
+        chatMessage.setWrittenByMe(true);
         // add the message on the broadcast window
-        Central.getInstance().broadcastChatFragment.addUserMessage(broadCastMessage);
+        Central.getInstance().broadcastChatFragment.addMessage(chatMessage);
     }
 }

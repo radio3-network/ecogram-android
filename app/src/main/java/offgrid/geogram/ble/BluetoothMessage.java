@@ -31,6 +31,8 @@ public class BluetoothMessage {
             checksum = null;
     private final TreeMap<String, String> messageBox = new TreeMap<>();
 
+    private final long timeStamp = System.currentTimeMillis();
+
     public BluetoothMessage(String idFromSender, String idDestination, String messageToSend) {
         this.id = generateRandomId();
         this.idFromSender = idFromSender;
@@ -192,15 +194,10 @@ public class BluetoothMessage {
         }
 
         if(index < 0){
-            Log.i(TAG, "Invalid parcel ID: " + parcelId);
+            Log.i(TAG, "Negative parcel ID: " + parcelId);
             return;
         }
 
-        // check if we have all the parcels
-        if(messageBox.size() == 1){
-            // too empty, we need at least two of them
-            return;
-        }
 
         // when the index is 0, it is an header so process it accordingly;
         if(index == 0){
@@ -208,6 +205,12 @@ public class BluetoothMessage {
             this.idDestination = parcel[2];
             this.id = parcelId.substring(0,2);
             this.checksum = parcel[3];
+            return;
+        }
+
+        // check if we have all the parcels
+        if(messageBox.size() == 1){
+            // too empty, we need at least two of them
             return;
         }
 
@@ -243,6 +246,34 @@ public class BluetoothMessage {
 
     public boolean isMessageCompleted() {
         return messageCompleted;
+    }
+
+    public void setMessageCompleted(boolean messageCompleted) {
+        this.messageCompleted = messageCompleted;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public void setIdFromSender(String idFromSender) {
+        this.idFromSender = idFromSender;
+    }
+
+    public void setIdDestination(String idDestination) {
+        this.idDestination = idDestination;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public void setChecksum(String checksum) {
+        this.checksum = checksum;
+    }
+
+    public long getTimeStamp() {
+        return timeStamp;
     }
 
     /**

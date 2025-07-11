@@ -22,32 +22,47 @@ import androidx.fragment.app.Fragment;
 
 import java.util.ArrayList;
 
-import offgrid.geogram.MainActivity;
 import offgrid.geogram.R;
 import offgrid.geogram.ble.BluetoothSender;
+import offgrid.geogram.ble.chat.ChatMessage;
 import offgrid.geogram.core.Log;
 import offgrid.geogram.database.BioDatabase;
 import offgrid.geogram.database.BioProfile;
-import offgrid.geogram.devices.DeviceDetailsFragment;
-import offgrid.geogram.old.bluetooth_old.BlueQueueReceiving;
-import offgrid.geogram.old.bluetooth_old.broadcast.BroadcastMessage;
 import offgrid.geogram.old.bluetooth_old.broadcast.BroadcastSender;
 import offgrid.geogram.util.ASCII;
 import offgrid.geogram.util.DateUtils;
 
 public class BroadcastChatFragment extends Fragment {
 
-    // messages that are displayed
-    private final ArrayList<BroadcastMessage> displayedMessages = new ArrayList<>();
-
-    private LinearLayout chatMessageContainer;
-    private ScrollView chatScrollView;
-    private final Handler handler = new Handler(Looper.getMainLooper());
-    Runnable runningPoll = null;
     private static final int REFRESH_INTERVAL_MS = 2000;
     public static String TAG = "BroadcastChatFragment";
+    // messages that are displayed
+    private final ArrayList<ChatMessage> messageLog = new ArrayList<>();
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    Runnable runningPoll = null;
+    private LinearLayout chatMessageContainer;
+    private ScrollView chatScrollView;
 
+    public boolean canAddMessages() {
+        return isAdded()                       // Fragment is attached to Activity
+                && getContext() != null       // Context is not null
+                && getView() != null          // Root view is available
+                && getUserVisibleHintSafe()   // Only update if user can actually see the screen
+                && chatMessageContainer != null
+                && chatScrollView != null;
+    }
 
+    private boolean getUserVisibleHintSafe() {
+        // If you're using ViewPager, replace with isVisible() or similar
+        return isVisible() && !isHidden();
+    }
+
+    public void addMessage(ChatMessage message){
+        messageLog.add(message);
+        if(canAddMessages()){
+            updateMessages();
+        }
+    }
 
     @Nullable
     @Override
@@ -151,39 +166,28 @@ public class BroadcastChatFragment extends Fragment {
      * Updates the chat message container with new messages.
      */
     private void updateMessages() {
-        ArrayList<BroadcastMessage> messages = BlueQueueReceiving.getInstance(getContext()).getMessagesReceivedAsBroadcast();
-        ArrayList<BroadcastMessage> currentMessages = new ArrayList<>(messages);
-        for (BroadcastMessage message : currentMessages) {
-            if (displayedMessages.contains(message) == false) {
-                if (message.isWrittenByMe()) {
-                    Log.i("BroadcastChatFragment", "Adding user message: " + message.getMessage());
-                    addUserMessage(message);
-                } else {
-                    // save the bio profile to disk
-                    String messageText = message.getMessage();
-                    if(messageText.startsWith(tagBio)){
-                        String data = messageText.substring(tagBio.length());
-                        BioProfile profile = BioProfile.fromJson(data);
-                        if(profile == null){
-                            Log.e("BroadcastChatFragment", "Invalid bio profile received: " + data);
-                            return;
-                        }
-                        // valid bio, write it to our database
-                        BioDatabase.save(message.getDeviceId(), profile, this.getContext());
-                        Log.i("BroadcastChatFragment", "Adding bio profile: " + profile.getNick());
-                        //return;
-                    }
+        boolean newMessagesWereAdded = false;
 
-                    Log.i("BroadcastChatFragment", "Adding received message: "
-                            + message.getMessage() + " from " + message.getDeviceId());
-                    addReceivedMessage(message);
-                    // Scroll to the bottom of the chat
-                    //chatScrollView.post(() -> chatScrollView.fullScroll(View.FOCUS_DOWN));
-                }
-                displayedMessages.add(message);
+        for (ChatMessage message : messageLog) {
+            // don't repeat showing the same message on the display
+            if (message.wasDisplayedBefore()) {
+                continue;
+            } else {
+                message.setWasDisplayed(true);
             }
+
+            // display the message on the screen
+            if (message.isWrittenByMe()) {
+                addUserMessage(message);
+            } else {
+                addReceivedMessage(message);
+            }
+            // inform that new messages were added
+            newMessagesWereAdded = true;
         }
-        chatScrollView.post(() -> chatScrollView.fullScroll(View.FOCUS_DOWN));
+        if(newMessagesWereAdded){
+            chatScrollView.post(() -> chatScrollView.fullScroll(View.FOCUS_DOWN));
+        }
     }
 
     /**
@@ -191,7 +195,7 @@ public class BroadcastChatFragment extends Fragment {
      *
      * @param message The message to display.
      */
-    public void addUserMessage(BroadcastMessage message) {
+    private void addUserMessage(ChatMessage message) {
         View userMessageView = LayoutInflater.from(getContext())
                 .inflate(R.layout.item_user_message, chatMessageContainer, false);
         TextView messageTextView = userMessageView.findViewById(R.id.message_user_self);
@@ -215,7 +219,7 @@ public class BroadcastChatFragment extends Fragment {
      *
      * @param message The message to display.
      */
-    public void addReceivedMessage(BroadcastMessage message) {
+    private void addReceivedMessage(ChatMessage message) {
         View receivedMessageView = LayoutInflater.from(getContext())
                 .inflate(R.layout.item_received_message, chatMessageContainer, false);
 
@@ -223,7 +227,7 @@ public class BroadcastChatFragment extends Fragment {
         TextView textBoxUpper = receivedMessageView.findViewById(R.id.message_boxUpper);
         TextView textBoxLower = receivedMessageView.findViewById(R.id.message_boxLower);
 
-        BioProfile profile = BioDatabase.get(message.getDeviceId(), this.getContext());
+        BioProfile profile = BioDatabase.get(message.getFrom(), this.getContext());
         String nickname = "";
 
         if (profile != null) {
@@ -236,8 +240,8 @@ public class BroadcastChatFragment extends Fragment {
         textBoxUpper.setText("");
 
         // Set the sender's name
-        if (nickname.isEmpty() && message.getDeviceId() != null) {
-            textBoxLower.setText(message.getDeviceId());
+        if (nickname.isEmpty() && message.getFrom() != null) {
+            textBoxLower.setText(message.getFrom());
         } else {
             String idText = nickname + "    " + dateText;
             textBoxLower.setText(idText);
@@ -296,7 +300,7 @@ public class BroadcastChatFragment extends Fragment {
 
     private void eraseMessagesFromWindow(){
         // clear all messages from the view
-        displayedMessages.clear();
+        messageLog.clear();
 
         if (chatMessageContainer != null) {
             chatMessageContainer.removeAllViews();

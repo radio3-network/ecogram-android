@@ -30,7 +30,7 @@ public class BluetoothCentral {
     * */
 
     // time duration to broadcast a message in loop
-    public static final int advertiseDurationMillis = 400;
+    public static final int advertiseDurationMillis = 1000;
     public static int
             selfIntervalSeconds = 60,
             maxSizeOfMessages = 18;
